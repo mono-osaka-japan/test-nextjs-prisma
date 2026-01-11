@@ -8,6 +8,7 @@ import {
   POST_STATUS,
   NOTIFICATION_TYPES,
   AUDIT_ACTIONS,
+  SORT_ORDERS,
 } from '@/constants';
 
 // ============================================
@@ -25,6 +26,9 @@ export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATI
 
 /** 監査ログアクション */
 export type AuditAction = typeof AUDIT_ACTIONS[keyof typeof AUDIT_ACTIONS];
+
+/** ソート順序 */
+export type SortOrder = typeof SORT_ORDERS[keyof typeof SORT_ORDERS];
 
 // ============================================
 // Base Entity Types
@@ -336,7 +340,7 @@ export interface PaginationParams {
 /** ソートパラメータ */
 export interface SortParams {
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: SortOrder;
 }
 
 /** 投稿フィルターパラメータ */

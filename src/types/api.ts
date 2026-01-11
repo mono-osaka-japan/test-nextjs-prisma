@@ -3,7 +3,7 @@
  * @description APIリクエスト・レスポンス、エラーハンドリングの型定義
  */
 
-import type { PaginationMeta, UserRole, PostStatus } from './index';
+import type { PaginationMeta, UserRole, PostStatus, SortOrder } from './index';
 import { ERROR_CODES, type ErrorCode } from '@/constants';
 
 // Re-export for backward compatibility
@@ -152,7 +152,7 @@ export interface GetPostsRequest {
   tagId?: string;
   search?: string;
   sortBy?: 'createdAt' | 'publishedAt' | 'viewCount' | 'title';
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: SortOrder;
 }
 
 /** ユーザー一覧リクエスト */
@@ -162,7 +162,7 @@ export interface GetUsersRequest {
   role?: UserRole;
   search?: string;
   sortBy?: 'createdAt' | 'name' | 'email';
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: SortOrder;
 }
 
 /** コメント一覧リクエスト */
