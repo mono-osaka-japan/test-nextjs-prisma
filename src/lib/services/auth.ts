@@ -1,12 +1,7 @@
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import { compare, hash } from "bcryptjs";
 import { prisma } from "@/lib/db/prisma";
-import { cookies } from "next/headers";
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "your-secret-key-change-in-production"
-);
-const SESSION_DURATION = 60 * 60 * 24 * 7; // 7 days in seconds
+import { AUTH_CONFIG } from "@/lib/auth/config";
 
 export interface AuthUser {
   id: string;
@@ -32,7 +27,7 @@ export async function verifyPassword(
 }
 
 export async function createSession(userId: string): Promise<string> {
-  const expires = new Date(Date.now() + SESSION_DURATION * 1000);
+  const expires = new Date(Date.now() + AUTH_CONFIG.SESSION_DURATION * 1000);
 
   const session = await prisma.session.create({
     data: {
@@ -49,14 +44,14 @@ export async function createSession(userId: string): Promise<string> {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(expires)
-    .sign(JWT_SECRET);
+    .sign(AUTH_CONFIG.JWT_SECRET);
 
   return token;
 }
 
 export async function verifyToken(token: string): Promise<JWTAuthPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, AUTH_CONFIG.JWT_SECRET);
     return payload as JWTAuthPayload;
   } catch {
     return null;
@@ -153,25 +148,38 @@ export async function logout(token: string): Promise<boolean> {
   }
 }
 
-export async function getCurrentUser(): Promise<AuthUser | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("auth-token")?.value;
-
-  if (!token) return null;
-
-  return validateSession(token);
-}
-
-export function setAuthCookie(token: string): void {
-  // This function returns cookie options for the response
-  // Cookie setting is done in the API route
-}
-
 export const AUTH_COOKIE_OPTIONS = {
-  name: "auth-token",
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax" as const,
-  path: "/",
-  maxAge: SESSION_DURATION,
+  name: AUTH_CONFIG.COOKIE_NAME,
+  httpOnly: AUTH_CONFIG.COOKIE_OPTIONS.httpOnly,
+  secure: AUTH_CONFIG.COOKIE_OPTIONS.secure,
+  sameSite: AUTH_CONFIG.COOKIE_OPTIONS.sameSite,
+  path: AUTH_CONFIG.COOKIE_OPTIONS.path,
+  maxAge: AUTH_CONFIG.SESSION_DURATION,
 };
+
+/**
+ * Validate session by sessionId (for use with middleware-passed session info)
+ * This ensures session exists in DB even if JWT is valid (handles logout/force invalidation)
+ */
+export async function validateSessionById(
+  sessionId: string
+): Promise<AuthUser | null> {
+  const session = await prisma.session.findUnique({
+    where: { id: sessionId },
+    include: { user: true },
+  });
+
+  if (!session || session.expires < new Date()) {
+    if (session) {
+      await prisma.session.delete({ where: { id: session.id } });
+    }
+    return null;
+  }
+
+  return {
+    id: session.user.id,
+    email: session.user.email,
+    name: session.user.name,
+    role: session.user.role,
+  };
+}

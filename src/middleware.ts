@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SignJWT, jwtVerify } from "jose";
+import { jwtVerify } from "jose";
+import { AUTH_COOKIE_NAME, getJwtSecret } from "@/lib/auth/constants";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "your-secret-key-change-in-production"
-);
-
-const AUTH_COOKIE_NAME = "auth-token";
-
-// Routes that require authentication
+// Routes that require authentication (API routes need session validation in handlers)
 const PROTECTED_API_ROUTES = [
   "/api/posts",
   "/api/comments",
@@ -28,32 +23,51 @@ const AUTH_PAGES = [
   "/register",
 ];
 
+interface JWTPayloadWithSession {
+  userId: string;
+  sessionId: string;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
 
-  let isAuthenticated = false;
+  let isJwtValid = false;
+  let payload: JWTPayloadWithSession | null = null;
 
   if (token) {
     try {
-      await jwtVerify(token, JWT_SECRET);
-      isAuthenticated = true;
+      const result = await jwtVerify(token, getJwtSecret());
+      payload = result.payload as unknown as JWTPayloadWithSession;
+      isJwtValid = true;
     } catch {
       // Token is invalid or expired
-      isAuthenticated = false;
+      isJwtValid = false;
     }
   }
 
   // Check protected API routes
+  // Note: Middleware only validates JWT. Each API handler MUST call validateSession()
+  // to verify the session exists in DB (handles logout/forced invalidation)
   const isProtectedApiRoute = PROTECTED_API_ROUTES.some((route) =>
     pathname.startsWith(route)
   );
 
-  if (isProtectedApiRoute && !isAuthenticated) {
-    return NextResponse.json(
-      { error: "Authentication required" },
-      { status: 401 }
-    );
+  if (isProtectedApiRoute) {
+    if (!isJwtValid || !payload) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+    // Pass session info to API handlers for DB validation
+    // Must modify request headers (not response) to pass to downstream handlers
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-auth-user-id", payload.userId);
+    requestHeaders.set("x-auth-session-id", payload.sessionId);
+    return NextResponse.next({
+      request: { headers: requestHeaders },
+    });
   }
 
   // Check protected pages
@@ -61,7 +75,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith(route)
   );
 
-  if (isProtectedPage && !isAuthenticated) {
+  if (isProtectedPage && !isJwtValid) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
@@ -70,7 +84,7 @@ export async function middleware(request: NextRequest) {
   // Check auth pages (redirect to dashboard if already authenticated)
   const isAuthPage = AUTH_PAGES.some((route) => pathname.startsWith(route));
 
-  if (isAuthPage && isAuthenticated) {
+  if (isAuthPage && isJwtValid) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
