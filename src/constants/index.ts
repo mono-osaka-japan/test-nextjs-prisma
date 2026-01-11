@@ -120,16 +120,28 @@ export const VALIDATION_LIMITS = {
   COMMENT_MAX: 5000,
   /** カテゴリー名の最大文字数 */
   CATEGORY_NAME_MAX: 50,
+  /** カテゴリー説明の最大文字数 */
+  CATEGORY_DESC_MAX: 500,
   /** タグ名の最大文字数 */
   TAG_NAME_MAX: 30,
   /** プロフィールBIOの最大文字数 */
   BIO_MAX: 500,
+  /** 場所の最大文字数 */
+  LOCATION_MAX: 100,
   /** ウェブサイトURLの最大文字数 */
   WEBSITE_URL_MAX: 200,
   /** 通知タイトルの最大文字数 */
   NOTIFICATION_TITLE_MAX: 100,
   /** 通知メッセージの最大文字数 */
   NOTIFICATION_MESSAGE_MAX: 500,
+  /** スラグの最大文字数 */
+  SLUG_MAX: 200,
+  /** 検索クエリの最大文字数 */
+  SEARCH_QUERY_MAX: 200,
+  /** ファイル名の最大文字数 */
+  FILENAME_MAX: 255,
+  /** 画像ALTの最大文字数 */
+  MEDIA_ALT_MAX: 500,
 } as const;
 
 // ============================================
@@ -230,8 +242,11 @@ export const ERROR_MESSAGES = {
   // バリデーション関連
   REQUIRED_FIELD: 'この項目は必須です',
   INVALID_EMAIL: '有効なメールアドレスを入力してください',
+  INVALID_URL: '有効なURLを入力してください',
+  INVALID_SLUG: 'スラグは小文字英数字とハイフンのみ使用できます',
   PASSWORD_TOO_SHORT: `パスワードは${VALIDATION_LIMITS.PASSWORD_MIN}文字以上で入力してください`,
   PASSWORD_TOO_WEAK: 'パスワードには大文字、小文字、数字を含めてください',
+  PASSWORD_MISMATCH: 'パスワードが一致しません',
 
   // リソース関連
   NOT_FOUND: 'リソースが見つかりません',

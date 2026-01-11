@@ -10,6 +10,9 @@ import {
   NOTIFICATION_TYPES,
   VALIDATION_LIMITS,
   ERROR_MESSAGES,
+  DEFAULT_PAGE_SIZE,
+  MAX_PAGE_SIZE,
+  SLUG_ALLOWED_CHARS,
 } from '@/constants';
 
 // ============================================
@@ -51,7 +54,7 @@ export const passwordSchema = z
  */
 export const urlSchema = z
   .string()
-  .url('有効なURLを入力してください')
+  .url(ERROR_MESSAGES.INVALID_URL)
   .max(VALIDATION_LIMITS.WEBSITE_URL_MAX)
   .optional()
   .nullable();
@@ -62,9 +65,9 @@ export const urlSchema = z
  */
 export const slugSchema = z
   .string()
-  .regex(/^[a-z0-9-]+$/, 'スラグは小文字英数字とハイフンのみ使用できます')
+  .regex(SLUG_ALLOWED_CHARS, ERROR_MESSAGES.INVALID_SLUG)
   .min(1)
-  .max(200);
+  .max(VALIDATION_LIMITS.SLUG_MAX);
 
 // ============================================
 // Pagination Schemas
@@ -75,7 +78,7 @@ export const slugSchema = z
  */
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  limit: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
 });
 
 /**
@@ -147,7 +150,7 @@ export const changePasswordSchema = z
     confirmPassword: z.string().min(1, ERROR_MESSAGES.REQUIRED_FIELD),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
-    message: 'パスワードが一致しません',
+    message: ERROR_MESSAGES.PASSWORD_MISMATCH,
     path: ['confirmPassword'],
   });
 
@@ -168,7 +171,7 @@ export const passwordResetSchema = z
     confirmPassword: z.string().min(1),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
-    message: 'パスワードが一致しません',
+    message: ERROR_MESSAGES.PASSWORD_MISMATCH,
     path: ['confirmPassword'],
   });
 
@@ -185,7 +188,7 @@ export const updateProfileSchema = z.object({
     .max(VALIDATION_LIMITS.BIO_MAX, `自己紹介は${VALIDATION_LIMITS.BIO_MAX}文字以内で入力してください`)
     .optional()
     .nullable(),
-  location: z.string().max(100).optional().nullable(),
+  location: z.string().max(VALIDATION_LIMITS.LOCATION_MAX).optional().nullable(),
   website: urlSchema,
   birthdate: z.coerce.date().optional().nullable(),
 });
@@ -239,7 +242,7 @@ export const postFilterSchema = paginationSchema.merge(sortSchema).extend({
   authorId: cuidSchema.optional(),
   categoryId: cuidSchema.optional(),
   tagId: cuidSchema.optional(),
-  search: z.string().max(200).optional(),
+  search: z.string().max(VALIDATION_LIMITS.SEARCH_QUERY_MAX).optional(),
 });
 
 // ============================================
@@ -254,7 +257,7 @@ export const createCategorySchema = z.object({
     .string()
     .min(1, ERROR_MESSAGES.REQUIRED_FIELD)
     .max(VALIDATION_LIMITS.CATEGORY_NAME_MAX),
-  description: z.string().max(500).optional().nullable(),
+  description: z.string().max(VALIDATION_LIMITS.CATEGORY_DESC_MAX).optional().nullable(),
   sortOrder: z.number().int().min(0).default(0),
 });
 
@@ -353,10 +356,10 @@ export const markNotificationsReadSchema = z.object({
  * メディアアップロードスキーマ
  */
 export const mediaUploadSchema = z.object({
-  filename: z.string().min(1).max(255),
+  filename: z.string().min(1).max(VALIDATION_LIMITS.FILENAME_MAX),
   mimeType: z.string().min(1),
   size: z.number().int().positive(),
-  alt: z.string().max(500).optional().nullable(),
+  alt: z.string().max(VALIDATION_LIMITS.MEDIA_ALT_MAX).optional().nullable(),
 });
 
 // ============================================
@@ -367,7 +370,7 @@ export const mediaUploadSchema = z.object({
  * 検索クエリスキーマ
  */
 export const searchQuerySchema = z.object({
-  q: z.string().min(1).max(200),
+  q: z.string().min(1).max(VALIDATION_LIMITS.SEARCH_QUERY_MAX),
   type: z.enum(['posts', 'users', 'tags', 'all']).default('all'),
   ...paginationSchema.shape,
 });

@@ -3,7 +3,7 @@
  * @description APIリクエスト・レスポンス、エラーハンドリングの型定義
  */
 
-import type { PaginationMeta } from './index';
+import type { PaginationMeta, UserRole, PostStatus } from './index';
 
 // ============================================
 // API Response Types
@@ -27,7 +27,7 @@ export interface ApiPaginatedResponse<T> {
 
 /** APIエラー */
 export interface ApiError {
-  code: string;
+  code: ErrorCode;
   message: string;
   details?: Record<string, unknown>;
   validationErrors?: ValidationError[];
@@ -37,7 +37,7 @@ export interface ApiError {
 export interface ValidationError {
   field: string;
   message: string;
-  code?: string;
+  code?: ErrorCode;
 }
 
 // ============================================
@@ -88,7 +88,7 @@ export interface AuthUser {
   email: string;
   name: string | null;
   avatarUrl: string | null;
-  role: string;
+  role: UserRole;
 }
 
 /** 登録リクエスト */
@@ -142,7 +142,7 @@ export interface AuthenticatedRequestContext extends RequestContext {
 export interface GetPostsRequest {
   page?: number;
   limit?: number;
-  status?: string;
+  status?: PostStatus;
   authorId?: string;
   categoryId?: string;
   tagId?: string;
@@ -155,7 +155,7 @@ export interface GetPostsRequest {
 export interface GetUsersRequest {
   page?: number;
   limit?: number;
-  role?: string;
+  role?: UserRole;
   search?: string;
   sortBy?: 'createdAt' | 'name' | 'email';
   sortOrder?: 'asc' | 'desc';
@@ -248,7 +248,7 @@ export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];
 /** APIハンドラーオプション */
 export interface ApiHandlerOptions {
   requireAuth?: boolean;
-  roles?: string[];
+  roles?: UserRole[];
   rateLimit?: {
     requests: number;
     window: number; // seconds

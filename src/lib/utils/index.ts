@@ -45,15 +45,21 @@ export function generateSlug(text: string): string {
  * @param suffix - 末尾に追加する文字列（デフォルト: '...'）
  * @returns 切り詰められた文字列
  * @example
- * truncate('Hello World', 5) // 'Hello...'
+ * truncate('Hello World', 8) // 'Hello...'
  */
 export function truncate(
   text: string,
   maxLength: number,
   suffix: string = '...'
 ): string {
+  if (maxLength <= 0) {
+    return '';
+  }
   if (text.length <= maxLength) {
     return text;
+  }
+  if (maxLength <= suffix.length) {
+    return suffix.slice(0, maxLength);
   }
   return text.slice(0, maxLength - suffix.length) + suffix;
 }
