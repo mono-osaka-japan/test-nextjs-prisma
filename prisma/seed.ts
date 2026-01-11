@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { hash } from "bcryptjs";
 import path from "path";
 
 // Database is at project root (relative to prisma.config.ts)
@@ -79,10 +80,14 @@ async function main() {
   console.log(`Created ${tags.length} tags`);
 
   // Create Users
+  // Default password for all seed users: "password123"
+  const defaultPassword = await hash("password123", 12);
+
   const adminUser = await prisma.user.create({
     data: {
       email: "admin@example.com",
       name: "管理者",
+      passwordHash: defaultPassword,
       role: "ADMIN",
       emailVerified: new Date(),
       profile: {
@@ -99,6 +104,7 @@ async function main() {
     data: {
       email: "tanaka@example.com",
       name: "田中太郎",
+      passwordHash: defaultPassword,
       role: "USER",
       emailVerified: new Date(),
       profile: {
@@ -115,6 +121,7 @@ async function main() {
     data: {
       email: "suzuki@example.com",
       name: "鈴木花子",
+      passwordHash: defaultPassword,
       role: "USER",
       emailVerified: new Date(),
       profile: {
@@ -130,6 +137,7 @@ async function main() {
     data: {
       email: "moderator@example.com",
       name: "モデレーター山田",
+      passwordHash: defaultPassword,
       role: "MODERATOR",
       emailVerified: new Date(),
       profile: {
