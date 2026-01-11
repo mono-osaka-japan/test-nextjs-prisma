@@ -247,6 +247,10 @@ export const ERROR_MESSAGES = {
   PASSWORD_TOO_SHORT: `パスワードは${VALIDATION_LIMITS.PASSWORD_MIN}文字以上で入力してください`,
   PASSWORD_TOO_WEAK: 'パスワードには大文字、小文字、数字を含めてください',
   PASSWORD_MISMATCH: 'パスワードが一致しません',
+  NAME_TOO_SHORT: `名前は${VALIDATION_LIMITS.USERNAME_MIN}文字以上で入力してください`,
+  BIO_TOO_LONG: `自己紹介は${VALIDATION_LIMITS.BIO_MAX}文字以内で入力してください`,
+  TITLE_TOO_LONG: `タイトルは${VALIDATION_LIMITS.POST_TITLE_MAX}文字以内で入力してください`,
+  COMMENT_TOO_LONG: `コメントは${VALIDATION_LIMITS.COMMENT_MAX}文字以内で入力してください`,
 
   // リソース関連
   NOT_FOUND: 'リソースが見つかりません',
@@ -259,6 +263,60 @@ export const ERROR_MESSAGES = {
 
   // レート制限
   RATE_LIMIT_EXCEEDED: 'リクエストが多すぎます。しばらく待ってから再試行してください',
+} as const;
+
+// ============================================
+// Error Codes
+// ============================================
+
+/** エラーコード定数 */
+export const ERROR_CODES = {
+  // 認証関連
+  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
+  TOKEN_EXPIRED: 'TOKEN_EXPIRED',
+  TOKEN_INVALID: 'TOKEN_INVALID',
+  SESSION_EXPIRED: 'SESSION_EXPIRED',
+  UNAUTHORIZED: 'UNAUTHORIZED',
+  FORBIDDEN: 'FORBIDDEN',
+
+  // バリデーション関連
+  VALIDATION_ERROR: 'VALIDATION_ERROR',
+  INVALID_INPUT: 'INVALID_INPUT',
+  MISSING_REQUIRED_FIELD: 'MISSING_REQUIRED_FIELD',
+
+  // リソース関連
+  NOT_FOUND: 'NOT_FOUND',
+  ALREADY_EXISTS: 'ALREADY_EXISTS',
+  CONFLICT: 'CONFLICT',
+
+  // サーバー関連
+  INTERNAL_ERROR: 'INTERNAL_ERROR',
+  SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
+  DATABASE_ERROR: 'DATABASE_ERROR',
+
+  // レート制限
+  RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
+} as const;
+
+/** エラーコード型 */
+export type ErrorCode = typeof ERROR_CODES[keyof typeof ERROR_CODES];
+
+// ============================================
+// Sort/Search Constants
+// ============================================
+
+/** ソート順序 */
+export const SORT_ORDERS = {
+  ASC: 'asc',
+  DESC: 'desc',
+} as const;
+
+/** 検索タイプ */
+export const SEARCH_TYPES = {
+  POSTS: 'posts',
+  USERS: 'users',
+  TAGS: 'tags',
+  ALL: 'all',
 } as const;
 
 // ============================================

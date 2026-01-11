@@ -4,6 +4,10 @@
  */
 
 import type { PaginationMeta, UserRole, PostStatus } from './index';
+import { ERROR_CODES, type ErrorCode } from '@/constants';
+
+// Re-export for backward compatibility
+export { ERROR_CODES as ErrorCodes, type ErrorCode };
 
 // ============================================
 // API Response Types
@@ -205,41 +209,6 @@ export type WebhookEventType =
   | 'post.deleted'
   | 'comment.created'
   | 'comment.deleted';
-
-// ============================================
-// Error Codes
-// ============================================
-
-/** エラーコード定数 */
-export const ErrorCodes = {
-  // 認証関連
-  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
-  TOKEN_EXPIRED: 'TOKEN_EXPIRED',
-  TOKEN_INVALID: 'TOKEN_INVALID',
-  SESSION_EXPIRED: 'SESSION_EXPIRED',
-  UNAUTHORIZED: 'UNAUTHORIZED',
-  FORBIDDEN: 'FORBIDDEN',
-
-  // バリデーション関連
-  VALIDATION_ERROR: 'VALIDATION_ERROR',
-  INVALID_INPUT: 'INVALID_INPUT',
-  MISSING_REQUIRED_FIELD: 'MISSING_REQUIRED_FIELD',
-
-  // リソース関連
-  NOT_FOUND: 'NOT_FOUND',
-  ALREADY_EXISTS: 'ALREADY_EXISTS',
-  CONFLICT: 'CONFLICT',
-
-  // サーバー関連
-  INTERNAL_ERROR: 'INTERNAL_ERROR',
-  SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
-  DATABASE_ERROR: 'DATABASE_ERROR',
-
-  // レート制限
-  RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
-} as const;
-
-export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];
 
 // ============================================
 // API Route Handler Types

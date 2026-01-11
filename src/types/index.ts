@@ -3,21 +3,28 @@
  * @description Prismaスキーマに基づくアプリケーション全体の型定義
  */
 
+import {
+  USER_ROLES,
+  POST_STATUS,
+  NOTIFICATION_TYPES,
+  AUDIT_ACTIONS,
+} from '@/constants';
+
 // ============================================
-// Enum Types
+// Enum Types (derived from constants)
 // ============================================
 
 /** ユーザーロール */
-export type UserRole = 'USER' | 'ADMIN' | 'MODERATOR';
+export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
 
 /** 投稿ステータス */
-export type PostStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+export type PostStatus = typeof POST_STATUS[keyof typeof POST_STATUS];
 
 /** 通知タイプ */
-export type NotificationType = 'LIKE' | 'COMMENT' | 'FOLLOW' | 'MENTION' | 'SYSTEM';
+export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];
 
 /** 監査ログアクション */
-export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT';
+export type AuditAction = typeof AUDIT_ACTIONS[keyof typeof AUDIT_ACTIONS];
 
 // ============================================
 // Base Entity Types

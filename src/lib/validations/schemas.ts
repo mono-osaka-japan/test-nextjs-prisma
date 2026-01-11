@@ -13,6 +13,8 @@ import {
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
   SLUG_ALLOWED_CHARS,
+  SORT_ORDERS,
+  SEARCH_TYPES,
 } from '@/constants';
 
 // ============================================
@@ -86,7 +88,7 @@ export const paginationSchema = z.object({
  */
 export const sortSchema = z.object({
   sortBy: z.string().optional(),
-  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+  sortOrder: z.enum([SORT_ORDERS.ASC, SORT_ORDERS.DESC]).default(SORT_ORDERS.DESC),
 });
 
 // ============================================
@@ -110,7 +112,7 @@ export const registerUserSchema = z.object({
   password: passwordSchema,
   name: z
     .string()
-    .min(VALIDATION_LIMITS.USERNAME_MIN, `名前は${VALIDATION_LIMITS.USERNAME_MIN}文字以上で入力してください`)
+    .min(VALIDATION_LIMITS.USERNAME_MIN, ERROR_MESSAGES.NAME_TOO_SHORT)
     .max(VALIDATION_LIMITS.USERNAME_MAX)
     .optional()
     .nullable(),
@@ -185,7 +187,7 @@ export const passwordResetSchema = z
 export const updateProfileSchema = z.object({
   bio: z
     .string()
-    .max(VALIDATION_LIMITS.BIO_MAX, `自己紹介は${VALIDATION_LIMITS.BIO_MAX}文字以内で入力してください`)
+    .max(VALIDATION_LIMITS.BIO_MAX, ERROR_MESSAGES.BIO_TOO_LONG)
     .optional()
     .nullable(),
   location: z.string().max(VALIDATION_LIMITS.LOCATION_MAX).optional().nullable(),
@@ -213,7 +215,7 @@ export const createPostSchema = z.object({
   title: z
     .string()
     .min(1, ERROR_MESSAGES.REQUIRED_FIELD)
-    .max(VALIDATION_LIMITS.POST_TITLE_MAX, `タイトルは${VALIDATION_LIMITS.POST_TITLE_MAX}文字以内で入力してください`),
+    .max(VALIDATION_LIMITS.POST_TITLE_MAX, ERROR_MESSAGES.TITLE_TOO_LONG),
   content: z
     .string()
     .min(1, ERROR_MESSAGES.REQUIRED_FIELD)
@@ -292,7 +294,7 @@ export const createCommentSchema = z.object({
   content: z
     .string()
     .min(1, ERROR_MESSAGES.REQUIRED_FIELD)
-    .max(VALIDATION_LIMITS.COMMENT_MAX, `コメントは${VALIDATION_LIMITS.COMMENT_MAX}文字以内で入力してください`),
+    .max(VALIDATION_LIMITS.COMMENT_MAX, ERROR_MESSAGES.COMMENT_TOO_LONG),
   postId: cuidSchema,
   parentId: cuidSchema.optional().nullable(),
 });
@@ -370,8 +372,8 @@ export const mediaUploadSchema = z.object({
  * 検索クエリスキーマ
  */
 export const searchQuerySchema = z.object({
-  q: z.string().min(1).max(VALIDATION_LIMITS.SEARCH_QUERY_MAX),
-  type: z.enum(['posts', 'users', 'tags', 'all']).default('all'),
+  q: z.string().min(1, ERROR_MESSAGES.REQUIRED_FIELD).max(VALIDATION_LIMITS.SEARCH_QUERY_MAX),
+  type: z.enum([SEARCH_TYPES.POSTS, SEARCH_TYPES.USERS, SEARCH_TYPES.TAGS, SEARCH_TYPES.ALL]).default(SEARCH_TYPES.ALL),
   ...paginationSchema.shape,
 });
 
