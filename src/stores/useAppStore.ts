@@ -1,10 +1,33 @@
 import { create } from 'zustand';
 
-interface ModalState {
-  isOpen: boolean;
-  type: 'site' | 'config' | 'confirm' | null;
-  data?: unknown;
+// Modal data types for type safety
+export interface SiteModalData {
+  siteId?: string;
 }
+
+export interface ConfigModalData {
+  configKey?: string;
+}
+
+export interface ConfirmModalData {
+  title: string;
+  message: string;
+  onConfirm: () => void;
+}
+
+type ModalType = 'site' | 'config' | 'confirm';
+
+type ModalDataMap = {
+  site: SiteModalData | undefined;
+  config: ConfigModalData | undefined;
+  confirm: ConfirmModalData;
+};
+
+type ModalState =
+  | { isOpen: false; type: null; data: undefined }
+  | { isOpen: true; type: 'site'; data?: SiteModalData }
+  | { isOpen: true; type: 'config'; data?: ConfigModalData }
+  | { isOpen: true; type: 'confirm'; data: ConfirmModalData };
 
 interface SidebarState {
   isCollapsed: boolean;
@@ -21,7 +44,7 @@ interface AppState {
   setMobileSidebarOpen: (open: boolean) => void;
 
   // Modal actions
-  openModal: (type: ModalState['type'], data?: unknown) => void;
+  openModal: <T extends ModalType>(type: T, data?: ModalDataMap[T]) => void;
   closeModal: () => void;
 }
 
@@ -66,7 +89,7 @@ export const useAppStore = create<AppState>((set) => ({
         isOpen: true,
         type,
         data,
-      },
+      } as ModalState,
     }),
 
   closeModal: () =>
