@@ -4,13 +4,15 @@ import { prisma } from "@/lib/db/prisma";
 // GET /api/patterns - パターン一覧取得
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    const searchParams = request.nextUrl.searchParams;
+    const authorId = searchParams.get("authorId");
     const type = searchParams.get("type");
     const isActive = searchParams.get("isActive");
     const campaignId = searchParams.get("campaignId");
     const systemGroupId = searchParams.get("systemGroupId");
 
     const where: Record<string, unknown> = {};
+    if (authorId) where.authorId = authorId;
     if (type) where.type = type;
     if (isActive !== null) where.isActive = isActive === "true";
     if (campaignId) where.campaignId = campaignId;
@@ -19,6 +21,12 @@ export async function GET(request: NextRequest) {
     const patterns = await prisma.pattern.findMany({
       where,
       include: {
+        steps: {
+          orderBy: { sortOrder: "asc" },
+        },
+        author: {
+          select: { id: true, name: true, email: true },
+        },
         campaign: true,
         systemGroup: true,
       },
@@ -39,7 +47,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, type, config, isActive, priority, campaignId, systemGroupId } = body;
+    const {
+      name,
+      description,
+      type,
+      config,
+      isActive = true,
+      priority,
+      authorId,
+      campaignId,
+      systemGroupId,
+    } = body;
 
     // バリデーション
     if (!name || typeof name !== "string" || name.trim() === "") {
@@ -77,6 +95,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // authorIdが指定されている場合、存在確認（空文字はnull扱い）
+    const normalizedAuthorId = authorId === "" ? null : authorId;
+    if (normalizedAuthorId) {
+      const author = await prisma.user.findUnique({
+        where: { id: normalizedAuthorId },
+      });
+      if (!author) {
+        return NextResponse.json({ error: "Author not found" }, { status: 404 });
+      }
+    }
+
     // priorityの数値変換（0も許容）
     let parsedPriority = 0;
     if (priority !== undefined && priority !== null && priority !== "") {
@@ -97,10 +126,15 @@ export async function POST(request: NextRequest) {
         config: config ? JSON.stringify(config) : null,
         isActive: isActive !== undefined ? isActive : true,
         priority: parsedPriority,
+        authorId: normalizedAuthorId || null,
         campaignId: normalizedCampaignId || null,
         systemGroupId: normalizedSystemGroupId || null,
       },
       include: {
+        steps: true,
+        author: {
+          select: { id: true, name: true, email: true },
+        },
         campaign: true,
         systemGroup: true,
       },
