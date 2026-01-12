@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/stores/useAppStore';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,

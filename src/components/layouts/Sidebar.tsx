@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/useAppStore';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui';
 import { Separator } from '@/components/ui/separator';
 import {
   Tooltip,
