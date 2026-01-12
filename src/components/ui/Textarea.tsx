@@ -1,27 +1,27 @@
 "use client";
 
-import { forwardRef, type InputHTMLAttributes } from "react";
+import { forwardRef, type TextareaHTMLAttributes } from "react";
 
-export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
   helperText?: string;
 }
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className = "", label, error, helperText, id, ...props }, ref) => {
-    const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
+    const textareaId = id || label?.toLowerCase().replace(/\s+/g, "-");
 
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label htmlFor={textareaId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             {label}
           </label>
         )}
-        <input
+        <textarea
           ref={ref}
-          id={inputId}
+          id={textareaId}
           className={`
             w-full px-3 py-2 border rounded-lg text-sm
             bg-white dark:bg-gray-800
@@ -29,6 +29,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             placeholder-gray-400 dark:placeholder-gray-500
             focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
             disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:cursor-not-allowed
+            resize-vertical min-h-[80px]
             ${error ? "border-red-500" : "border-gray-300 dark:border-gray-600"}
             ${className}
           `}
@@ -41,4 +42,4 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
   }
 );
 
-Input.displayName = "Input";
+Textarea.displayName = "Textarea";
