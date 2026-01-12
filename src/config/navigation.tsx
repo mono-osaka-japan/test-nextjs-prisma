@@ -1,13 +1,16 @@
 import { type ComponentType, type SVGProps } from 'react';
 import {
   DashboardIcon,
-  GlobeIcon,
   ScrapingIcon,
   SettingsIcon,
   HelpIcon,
 } from '@/components/icons';
+import {
+  CampaignsIcon,
+  PatternsIcon,
+} from '@/components/features/dashboard/icons';
 
-type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
+type IconComponent = ComponentType<SVGProps<SVGSVGElement>> | (() => JSX.Element);
 
 export interface NavItem {
   title: string;
@@ -17,22 +20,27 @@ export interface NavItem {
 
 export const mainNavItems: NavItem[] = [
   {
-    title: 'Dashboard',
+    title: 'ダッシュボード',
     href: '/dashboard',
     Icon: DashboardIcon,
   },
   {
-    title: 'Sites',
-    href: '/sites',
-    Icon: GlobeIcon,
+    title: '案件管理',
+    href: '/campaigns',
+    Icon: CampaignsIcon,
   },
   {
-    title: 'Scraping',
+    title: 'パターン',
+    href: '/patterns',
+    Icon: PatternsIcon,
+  },
+  {
+    title: 'スクレイピング',
     href: '/scraping',
     Icon: ScrapingIcon,
   },
   {
-    title: 'Settings',
+    title: '設定',
     href: '/settings',
     Icon: SettingsIcon,
   },
@@ -40,7 +48,7 @@ export const mainNavItems: NavItem[] = [
 
 export const bottomNavItems: NavItem[] = [
   {
-    title: 'Help',
+    title: 'ヘルプ',
     href: '/help',
     Icon: HelpIcon,
   },
