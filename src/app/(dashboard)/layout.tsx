@@ -1,5 +1,11 @@
+import { Metadata } from 'next';
 import { Sidebar } from '@/components/layouts/Sidebar';
 import { Header } from '@/components/layouts/Header';
+
+export const metadata: Metadata = {
+  title: 'ダッシュボード',
+  description: 'アプリケーションのダッシュボード',
+};
 
 export default function DashboardLayout({
   children,
