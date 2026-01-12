@@ -1,106 +1,121 @@
-'use client';
+"use client";
 
-import { useEffect, useCallback, useRef, useId } from 'react';
+import { useEffect, useCallback, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
-interface ModalProps {
+export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
-  children: React.ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  title?: string;
+  children: ReactNode;
+  size?: "sm" | "md" | "lg" | "xl" | "full";
+  closeOnOverlayClick?: boolean;
+  closeOnEscape?: boolean;
   showCloseButton?: boolean;
+  footer?: ReactNode;
 }
-
-const sizeClasses = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-lg',
-  xl: 'max-w-xl',
-};
 
 export function Modal({
   isOpen,
   onClose,
   title,
   children,
-  size = 'md',
+  size = "md",
+  closeOnOverlayClick = true,
+  closeOnEscape = true,
   showCloseButton = true,
+  footer,
 }: ModalProps) {
-  const modalRef = useRef<HTMLDivElement>(null);
-  const titleId = useId();
-
-  const handleEscape = useCallback(
+  const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape" && closeOnEscape) {
         onClose();
       }
     },
-    [onClose]
+    [closeOnEscape, onClose]
   );
 
   useEffect(() => {
     if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
+      document.addEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "hidden";
     }
+
     return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
     };
-  }, [isOpen, handleEscape]);
+  }, [isOpen, handleKeyDown]);
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
+  const sizes = {
+    sm: "max-w-sm",
+    md: "max-w-md",
+    lg: "max-w-lg",
+    xl: "max-w-xl",
+    full: "max-w-4xl",
+  };
+
+  const modalContent = (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Overlay */}
       <div
         className="absolute inset-0 bg-black/50 transition-opacity"
-        onClick={onClose}
+        onClick={closeOnOverlayClick ? onClose : undefined}
         aria-hidden="true"
       />
+
       {/* Modal */}
       <div
-        ref={modalRef}
+        className={`
+          relative w-full ${sizes[size]}
+          bg-white dark:bg-gray-800
+          rounded-xl shadow-xl
+          transform transition-all
+          max-h-[90vh] flex flex-col
+        `}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={titleId}
-        className={`relative z-10 w-full ${sizeClasses[size]} mx-4 rounded-lg bg-white shadow-xl dark:bg-zinc-900`}
+        aria-labelledby={title ? "modal-title" : undefined}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
-          <h2
-            id={titleId}
-            className="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
-          >
-            {title}
-          </h2>
-          {showCloseButton && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-              aria-label="閉じる"
-            >
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+        {(title || showCloseButton) && (
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            {title && (
+              <h2 id="modal-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {title}
+              </h2>
+            )}
+            {showCloseButton && (
+              <button
+                onClick={onClose}
+                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                aria-label="閉じる"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          )}
-        </div>
-        {/* Content */}
-        <div className="px-6 py-4">{children}</div>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
+
+        {/* Footer */}
+        {footer && (
+          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );
+
+  // クライアントサイドでのみポータルを使用
+  if (typeof window === "undefined") return null;
+
+  return createPortal(modalContent, document.body);
 }

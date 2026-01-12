@@ -36,6 +36,8 @@ model User {
   profile       Profile?
   auditLogs     AuditLog[]
   patterns      Pattern[]
+  campaigns     Campaign[]
+  assignedTasks CampaignTask[] @relation("AssignedTasks")
 
   @@index([email])
   @@index([createdAt])
@@ -357,7 +359,6 @@ model SystemGroup {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  campaigns Campaign[]
   patterns  Pattern[]
 
   @@index([name])
@@ -368,33 +369,68 @@ model SystemGroup {
 // 18. Campaign - 案件
 // ============================================
 model Campaign {
-  id            String   @id @default(cuid())
-  name          String
-  description   String?
-  status        String   @default("DRAFT") // DRAFT, ACTIVE, PAUSED, COMPLETED, ARCHIVED
-  startDate     DateTime?
-  endDate       DateTime?
-  budget        Float?
-  targetMetrics String?  // JSON string for flexible metrics
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  status      String   @default("DRAFT") // DRAFT, ACTIVE, PAUSED, COMPLETED, CANCELLED
+  priority    String   @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  startDate   DateTime?
+  endDate     DateTime?
+  budget      Float?
+  targetUrl   String?
+
+  // 認証情報（URL解析で抽出）
+  authType    String?  // NONE, BASIC, BEARER, API_KEY, OAUTH
+  authConfig  String?  // JSON: { username, password, token, apiKey, etc. }
+
+  // メタデータ
+  metadata    String?  // JSON: 追加の設定や情報
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Foreign Keys
-  systemGroupId String?
+  ownerId     String
 
   // Relations
-  systemGroup SystemGroup? @relation(fields: [systemGroupId], references: [id], onDelete: SetNull)
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  tasks       CampaignTask[]
   patterns    Pattern[]
 
-  @@index([name])
+  @@index([ownerId])
   @@index([status])
-  @@index([systemGroupId])
-  @@index([startDate])
-  @@index([endDate])
+  @@index([priority])
+  @@index([createdAt])
 }
 
 // ============================================
-// 19. Pattern - パターン（自動化テンプレート）
+// 19. CampaignTask - 案件タスク
+// ============================================
+model CampaignTask {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  status      String   @default("TODO") // TODO, IN_PROGRESS, DONE, CANCELLED
+  dueDate     DateTime?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Foreign Keys
+  campaignId  String
+  assigneeId  String?
+
+  // Relations
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  assignee    User?    @relation("AssignedTasks", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  @@index([campaignId])
+  @@index([assigneeId])
+  @@index([status])
+}
+
+// ============================================
+// 20. Pattern - パターン（自動化テンプレート）
 // ============================================
 model Pattern {
   id          String   @id @default(cuid())
@@ -428,7 +464,7 @@ model Pattern {
 }
 
 // ============================================
-// 20. PatternStep - パターンステップ
+// 21. PatternStep - パターンステップ
 // ============================================
 model PatternStep {
   id          String   @id @default(cuid())
@@ -452,7 +488,7 @@ model PatternStep {
 }
 
 // ============================================
-// 21. PatternTestResult - パターンテスト結果
+// 22. PatternTestResult - パターンテスト結果
 // ============================================
 model PatternTestResult {
   id          String   @id @default(cuid())
