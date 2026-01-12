@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { validateSessionById, AuthUser } from "@/lib/services/auth";
+import { validateSession, AuthUser } from "@/lib/services/auth";
+import { AUTH_COOKIE_NAME } from "@/lib/auth/constants";
 
 /**
  * Require authentication for API routes.
- * This validates the session exists in DB (handles logout/forced invalidation).
+ * This validates the JWT from httpOnly cookie and checks session in DB.
  *
  * Usage in API route:
  * ```ts
@@ -18,10 +19,10 @@ import { validateSessionById, AuthUser } from "@/lib/services/auth";
 export async function requireAuth(
   request: NextRequest
 ): Promise<{ user: AuthUser; error?: never } | { user?: never; error: NextResponse }> {
-  // Session ID is passed from middleware after JWT validation
-  const sessionId = request.headers.get("x-auth-session-id");
+  // Get JWT token from httpOnly cookie
+  const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
 
-  if (!sessionId) {
+  if (!token) {
     return {
       error: NextResponse.json(
         { error: "Authentication required" },
@@ -30,8 +31,8 @@ export async function requireAuth(
     };
   }
 
-  // Validate session exists in DB (catches logout/force invalidation)
-  const user = await validateSessionById(sessionId);
+  // Validate JWT and check session in DB
+  const user = await validateSession(token);
 
   if (!user) {
     return {

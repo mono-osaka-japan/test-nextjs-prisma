@@ -19,7 +19,8 @@ const exportSchema = z.object({
   filename: z.string().default('export'),
   delimiter: z.enum([',', ';', '\t']).default(','),
   includeHeader: z.boolean().default(true),
-  encoding: z.enum(['utf-8', 'shift-jis']).default('utf-8'),
+  // NOTE: Shift-JISはiconv-lite等のライブラリが必要なため、現在はUTF-8のみサポート
+  encoding: z.literal('utf-8').default('utf-8'),
 });
 
 // ============================================
@@ -27,14 +28,35 @@ const exportSchema = z.object({
 // ============================================
 
 /**
+ * CSV数式インジェクション対策: 危険な先頭文字をエスケープ
+ * Excel等で数式として解釈される文字 (=, +, -, @, タブ, CR) の前にシングルクォートを付与
+ * 先頭の空白を除去した後にチェックし、該当する場合は常に先頭に'を付与
+ */
+function escapeFormulaInjection(str: string): string {
+  const dangerousChars = ['=', '+', '-', '@', '\t', '\r'];
+  // 先頭の空白を除去してチェック（" =1+1"のようなケース対策）
+  const trimmed = str.trimStart();
+  if (dangerousChars.some((char) => trimmed.startsWith(char))) {
+    // 元の文字列の先頭に'を付与（空白も保持）
+    return `'${str}`;
+  }
+  return str;
+}
+
+/**
  * 値をCSVセーフな文字列に変換
+ * - 数式インジェクション対策
+ * - 特殊文字のエスケープ
  */
 function escapeCSVValue(value: unknown, delimiter: string): string {
   if (value === null || value === undefined) {
     return '';
   }
 
-  const str = typeof value === 'object' ? JSON.stringify(value) : String(value);
+  let str = typeof value === 'object' ? JSON.stringify(value) : String(value);
+
+  // 数式インジェクション対策
+  str = escapeFormulaInjection(str);
 
   // ダブルクォート、改行、デリミタを含む場合はエスケープ
   if (str.includes('"') || str.includes('\n') || str.includes('\r') || str.includes(delimiter)) {
@@ -42,6 +64,14 @@ function escapeCSVValue(value: unknown, delimiter: string): string {
   }
 
   return str;
+}
+
+/**
+ * ファイル名をサニタイズ（ヘッダーインジェクション対策）
+ * 英数字、ハイフン、アンダースコア、ピリオドのみ許可
+ */
+function sanitizeFilename(filename: string): string {
+  return filename.replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 100);
 }
 
 /**
@@ -77,18 +107,6 @@ function convertToCSV(
   return lines.join('\r\n');
 }
 
-/**
- * UTF-8からShift-JISに変換（簡易版）
- * 注: 本番環境ではiconvなどのライブラリを使用することを推奨
- */
-async function convertToShiftJIS(text: string): Promise<Uint8Array> {
-  // Node.js環境ではTextEncoderを使用
-  // Shift-JISへの変換はブラウザと異なる処理が必要
-  // 簡易実装としてUTF-8をそのまま返す（本番ではiconv-liteを使用）
-  const encoder = new TextEncoder();
-  return encoder.encode(text);
-}
-
 // ============================================
 // POST /api/export/csv
 // ============================================
@@ -113,6 +131,23 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { error: 'ジョブが見つかりません' },
           { status: 404 }
+        );
+      }
+
+      // 認可チェック: ジョブの所有者を確認
+      // userIdが未設定のジョブはセキュリティ上の理由でアクセス拒否
+      const jobUserId = job.data?.metadata?.userId as string | undefined;
+      if (!jobUserId) {
+        // 所有者情報がないジョブは誰もエクスポートできない（セキュリティ対策）
+        return NextResponse.json(
+          { error: 'ジョブに所有者情報がありません' },
+          { status: 403 }
+        );
+      }
+      if (jobUserId !== authResult.user.id) {
+        return NextResponse.json(
+          { error: 'このジョブへのアクセス権限がありません' },
+          { status: 403 }
         );
       }
 
@@ -162,32 +197,23 @@ export async function POST(request: NextRequest) {
       includeHeader: options.includeHeader,
     });
 
-    // エンコーディング処理
-    let contentBytes: Uint8Array;
-    let charset: string;
+    // UTF-8エンコーディング（BOM付与でExcel互換性を確保）
+    const bom = new Uint8Array([0xef, 0xbb, 0xbf]);
+    const encoder = new TextEncoder();
+    const content = encoder.encode(csvContent);
+    const contentBytes = new Uint8Array(bom.length + content.length);
+    contentBytes.set(bom);
+    contentBytes.set(content, bom.length);
 
-    if (options.encoding === 'shift-jis') {
-      contentBytes = await convertToShiftJIS(csvContent);
-      charset = 'Shift_JIS';
-    } else {
-      // UTF-8の場合はBOMを付与
-      const bom = new Uint8Array([0xef, 0xbb, 0xbf]);
-      const encoder = new TextEncoder();
-      const content = encoder.encode(csvContent);
-      contentBytes = new Uint8Array(bom.length + content.length);
-      contentBytes.set(bom);
-      contentBytes.set(content, bom.length);
-      charset = 'UTF-8';
-    }
-
-    // ファイル名を生成
+    // ファイル名を生成（サニタイズしてヘッダーインジェクション対策）
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const filename = `${options.filename}_${timestamp}.csv`;
+    const safeFilename = sanitizeFilename(options.filename);
+    const filename = `${safeFilename}_${timestamp}.csv`;
 
     // レスポンスを返す
     return new NextResponse(contentBytes.buffer as ArrayBuffer, {
       headers: {
-        'Content-Type': `text/csv; charset=${charset}`,
+        'Content-Type': 'text/csv; charset=UTF-8',
         'Content-Disposition': `attachment; filename="${filename}"`,
         'Content-Length': String(contentBytes.length),
       },
