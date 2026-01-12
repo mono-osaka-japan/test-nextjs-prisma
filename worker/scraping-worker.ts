@@ -1,5 +1,5 @@
 import { Worker, Job } from 'bullmq';
-import { getRedisConnection, closeConnections } from '../src/lib/queue/connection';
+import { getWorkerConnection, closeConnections, closeWorkerConnection } from '../src/lib/queue/connection';
 import {
   ScrapingJobData,
   ScrapingJobResult,
@@ -131,7 +131,8 @@ export function createScrapingWorker(
     QUEUE_NAME,
     processScrapingJob,
     {
-      connection: getRedisConnection(),
+      // BullMQはWorkerに専用接続を要求するため、共有接続を使用しない
+      connection: getWorkerConnection(),
       concurrency: mergedConfig.concurrency,
       limiter: mergedConfig.limiter,
       lockDuration: mergedConfig.lockDuration,
@@ -192,7 +193,8 @@ export async function stopWorker(): Promise<void> {
 
   console.log('[Worker] Stopping worker...');
   await worker.close();
-  await closeConnections();
+  // Worker用の専用接続もクローズしてライフサイクルの整合性を保つ
+  await closeWorkerConnection();
   worker = null;
   console.log('[Worker] Worker stopped');
 }

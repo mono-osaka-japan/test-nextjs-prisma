@@ -128,7 +128,8 @@ export class HttpClient {
       timeout: this.config.timeout,
       headers: this.config.headers,
       maxRedirects: 5,
-      validateStatus: (status) => status < 500,
+      // デフォルト: 2xxのみ成功とする (4xx/5xxはエラー)
+      validateStatus: (status) => status >= 200 && status < 300,
     };
 
     if (this.config.proxy) {

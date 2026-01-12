@@ -1,5 +1,5 @@
 import { Queue, QueueEvents, Job, JobsOptions } from 'bullmq';
-import { getRedisConnection } from './connection';
+import { getRedisConnection, getQueueEventsConnection, closeQueueEventsConnection } from './connection';
 import { ScrapingConfig, ScrapingResult } from '../scraper/engine';
 import { VariableContext } from '../scraper/variable-resolver';
 
@@ -91,8 +91,9 @@ export function getScrapingQueue(): Queue<ScrapingJobData, ScrapingJobResult> {
 
 export function getQueueEvents(): QueueEvents {
   if (!queueEvents) {
+    // BullMQはQueueEventsに専用接続を要求するため、共有接続を使用しない
     queueEvents = new QueueEvents(QUEUE_NAME, {
-      connection: getRedisConnection(),
+      connection: getQueueEventsConnection(),
     });
   }
   return queueEvents;
@@ -103,6 +104,9 @@ export async function closeQueue(): Promise<void> {
     await queueEvents.close();
     queueEvents = null;
   }
+  // QueueEvents用の専用接続もクローズしてライフサイクルの整合性を保つ
+  await closeQueueEventsConnection();
+
   if (scrapingQueue) {
     await scrapingQueue.close();
     scrapingQueue = null;
@@ -343,9 +347,23 @@ export async function scheduleRecurringJob(
   });
 }
 
-export async function removeRecurringJob(jobId: string): Promise<boolean> {
+/**
+ * 定期ジョブを削除する
+ *
+ * @param repeatableKey getRecurringJobs()で取得したkeyを渡す（jobIdではない）
+ *
+ * 使用例:
+ * ```ts
+ * const jobs = await getRecurringJobs();
+ * const targetJob = jobs.find(j => j.cron === '0 0 * * *');
+ * if (targetJob) {
+ *   await removeRecurringJob(targetJob.key);
+ * }
+ * ```
+ */
+export async function removeRecurringJob(repeatableKey: string): Promise<boolean> {
   const queue = getScrapingQueue();
-  return queue.removeRepeatableByKey(jobId);
+  return queue.removeRepeatableByKey(repeatableKey);
 }
 
 export async function getRecurringJobs(): Promise<Array<{ key: string; cron: string; next: number }>> {

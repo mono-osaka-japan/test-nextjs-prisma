@@ -42,6 +42,8 @@ const DEFAULT_CONFIG: Required<RedisConnectionConfig> = {
 
 let redisConnection: Redis | null = null;
 let subscriberConnection: Redis | null = null;
+let queueEventsConnection: Redis | null = null;
+let workerConnection: Redis | null = null;
 
 // ============================================
 // Connection Factory
@@ -120,6 +122,44 @@ export function getSubscriberConnection(
   return subscriberConnection;
 }
 
+/**
+ * BullMQ QueueEvents用の専用接続を取得
+ * QueueEventsは独自の接続を必要とするため、共有接続を使用しない
+ */
+export function getQueueEventsConnection(
+  config: RedisConnectionConfig = {}
+): Redis {
+  if (!queueEventsConnection) {
+    const options = createRedisOptions(config);
+    queueEventsConnection = new Redis(options);
+
+    queueEventsConnection.on('error', (error) => {
+      console.error('Redis QueueEvents connection error:', error.message);
+    });
+  }
+
+  return queueEventsConnection;
+}
+
+/**
+ * BullMQ Worker用の専用接続を取得
+ * Workerは独自の接続を必要とするため、共有接続を使用しない
+ */
+export function getWorkerConnection(
+  config: RedisConnectionConfig = {}
+): Redis {
+  if (!workerConnection) {
+    const options = createRedisOptions(config);
+    workerConnection = new Redis(options);
+
+    workerConnection.on('error', (error) => {
+      console.error('Redis Worker connection error:', error.message);
+    });
+  }
+
+  return workerConnection;
+}
+
 export async function closeConnections(): Promise<void> {
   const promises: Promise<void>[] = [];
 
@@ -139,7 +179,65 @@ export async function closeConnections(): Promise<void> {
     );
   }
 
+  if (queueEventsConnection) {
+    promises.push(
+      queueEventsConnection.quit().then(() => {
+        queueEventsConnection = null;
+      })
+    );
+  }
+
+  if (workerConnection) {
+    promises.push(
+      workerConnection.quit().then(() => {
+        workerConnection = null;
+      })
+    );
+  }
+
   await Promise.all(promises);
+}
+
+/**
+ * QueueEvents用の専用接続のみをクローズする
+ * Queue停止時に呼び出すことでライフサイクルの整合性を保つ
+ *
+ * 注意: BullMQ QueueEvents.close()は内部で接続をクローズしないため、
+ * この関数で明示的にquitする必要がある
+ */
+export async function closeQueueEventsConnection(): Promise<void> {
+  if (queueEventsConnection) {
+    try {
+      // 接続がまだ有効な場合のみquitを試行
+      if (queueEventsConnection.status !== 'end') {
+        await queueEventsConnection.quit();
+      }
+    } catch {
+      // 既にクローズ済みの場合は無視
+    }
+    queueEventsConnection = null;
+  }
+}
+
+/**
+ * Worker用の専用接続のみをクローズする
+ * Worker停止時に呼び出すことでライフサイクルの整合性を保つ
+ *
+ * 注意: BullMQ Worker.close()は内部で接続をクローズしないため、
+ * この関数で明示的にquitする必要がある
+ */
+export async function closeWorkerConnection(): Promise<void> {
+  if (workerConnection) {
+    try {
+      // 接続がまだ有効な場合のみquitを試行
+      if (workerConnection.status !== 'end') {
+        await workerConnection.quit();
+      }
+    } catch {
+      // 既にクローズ済みの場合は無視
+    }
+    workerConnection = null;
+  }
 }
 
 export function getConnectionStatus(): ConnectionStatus {
