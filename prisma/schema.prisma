@@ -345,9 +345,6 @@ model AuditLog {
 }
 
 // ============================================
-<<<<<<< HEAD
-// 17. Pattern - パターン（自動化テンプレート）
-=======
 // 17. SystemGroup - システムグループ
 // ============================================
 model SystemGroup {
@@ -397,39 +394,41 @@ model Campaign {
 }
 
 // ============================================
-// 19. Pattern - パターン
->>>>>>> origin/main
+// 19. Pattern - パターン（自動化テンプレート）
 // ============================================
 model Pattern {
   id          String   @id @default(cuid())
   name        String
   description String?
-<<<<<<< HEAD
-  isActive    Boolean  @default(true)
-=======
   type        String   @default("DEFAULT") // DEFAULT, A/B_TEST, PERSONALIZED, etc.
   config      String?  // JSON string for pattern configuration
   isActive    Boolean  @default(true)
   priority    Int      @default(0)
->>>>>>> origin/main
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Foreign Keys
-<<<<<<< HEAD
-  authorId String
+  authorId      String?
+  campaignId    String?
+  systemGroupId String?
 
   // Relations
-  author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author      User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  campaign    Campaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  systemGroup SystemGroup?  @relation(fields: [systemGroupId], references: [id], onDelete: SetNull)
   steps       PatternStep[]
   testResults PatternTestResult[]
 
-  @@index([authorId])
+  @@index([name])
+  @@index([type])
   @@index([isActive])
+  @@index([authorId])
+  @@index([campaignId])
+  @@index([systemGroupId])
 }
 
 // ============================================
-// 18. PatternStep - パターンステップ
+// 20. PatternStep - パターンステップ
 // ============================================
 model PatternStep {
   id          String   @id @default(cuid())
@@ -453,7 +452,7 @@ model PatternStep {
 }
 
 // ============================================
-// 19. PatternTestResult - パターンテスト結果
+// 21. PatternTestResult - パターンテスト結果
 // ============================================
 model PatternTestResult {
   id          String   @id @default(cuid())
@@ -473,18 +472,4 @@ model PatternTestResult {
   @@index([patternId])
   @@index([status])
   @@index([createdAt])
-=======
-  campaignId    String?
-  systemGroupId String?
-
-  // Relations
-  campaign    Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  systemGroup SystemGroup? @relation(fields: [systemGroupId], references: [id], onDelete: SetNull)
-
-  @@index([name])
-  @@index([type])
-  @@index([isActive])
-  @@index([campaignId])
-  @@index([systemGroupId])
->>>>>>> origin/main
 }

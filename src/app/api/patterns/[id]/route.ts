@@ -11,7 +11,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const pattern = await prisma.pattern.findUnique({
       where: { id },
       include: {
-<<<<<<< HEAD
         steps: {
           orderBy: { sortOrder: "asc" },
         },
@@ -22,10 +21,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           orderBy: { createdAt: "desc" },
           take: 10,
         },
-=======
         campaign: true,
         systemGroup: true,
->>>>>>> origin/main
       },
     });
 
@@ -51,10 +48,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const body = await request.json();
-<<<<<<< HEAD
-    const { name, description, isActive } = body;
-=======
-    const { name, description, type, config, isActive, priority, campaignId, systemGroupId } = body;
+    const {
+      name,
+      description,
+      type,
+      config,
+      isActive,
+      priority,
+      authorId,
+      campaignId,
+      systemGroupId,
+    } = body;
 
     // 存在確認
     const existing = await prisma.pattern.findUnique({
@@ -104,6 +108,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // authorIdが指定されている場合、存在確認（空文字はnull扱い）
+    const normalizedAuthorId = authorId === "" ? null : authorId;
+    if (normalizedAuthorId) {
+      const author = await prisma.user.findUnique({
+        where: { id: normalizedAuthorId },
+      });
+      if (!author) {
+        return NextResponse.json({ error: "Author not found" }, { status: 404 });
+      }
+    }
+
     // priorityの数値変換（0も許容、空文字/nullは未指定扱い）
     let parsedPriority: number | undefined = undefined;
     if (priority !== undefined && priority !== null && priority !== "") {
@@ -115,15 +130,19 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         );
       }
     }
->>>>>>> origin/main
 
     const pattern = await prisma.pattern.update({
       where: { id },
       data: {
-<<<<<<< HEAD
-        ...(name !== undefined && { name }),
+        ...(name !== undefined && { name: name.trim() }),
         ...(description !== undefined && { description }),
+        ...(type !== undefined && { type }),
+        ...(config !== undefined && { config: config ? JSON.stringify(config) : null }),
         ...(isActive !== undefined && { isActive }),
+        ...(parsedPriority !== undefined && { priority: parsedPriority }),
+        ...(authorId !== undefined && { authorId: normalizedAuthorId }),
+        ...(campaignId !== undefined && { campaignId: normalizedCampaignId }),
+        ...(systemGroupId !== undefined && { systemGroupId: normalizedSystemGroupId }),
       },
       include: {
         steps: {
@@ -132,20 +151,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         author: {
           select: { id: true, name: true, email: true },
         },
-=======
-        ...(name !== undefined && { name: name.trim() }),
-        ...(description !== undefined && { description }),
-        ...(type !== undefined && { type }),
-        ...(config !== undefined && { config: config ? JSON.stringify(config) : null }),
-        ...(isActive !== undefined && { isActive }),
-        ...(parsedPriority !== undefined && { priority: parsedPriority }),
-        ...(campaignId !== undefined && { campaignId: normalizedCampaignId }),
-        ...(systemGroupId !== undefined && { systemGroupId: normalizedSystemGroupId }),
-      },
-      include: {
         campaign: true,
         systemGroup: true,
->>>>>>> origin/main
       },
     });
 
@@ -164,8 +171,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
 
-<<<<<<< HEAD
-=======
     // 存在確認
     const existing = await prisma.pattern.findUnique({
       where: { id },
@@ -178,16 +183,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
->>>>>>> origin/main
     await prisma.pattern.delete({
       where: { id },
     });
 
-<<<<<<< HEAD
-    return NextResponse.json({ success: true });
-=======
-    return NextResponse.json({ message: "Pattern deleted successfully" });
->>>>>>> origin/main
+    return NextResponse.json({ success: true, message: "Pattern deleted successfully" });
   } catch (error) {
     console.error("Failed to delete pattern:", error);
     return NextResponse.json(
