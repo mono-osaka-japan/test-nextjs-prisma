@@ -342,3 +342,81 @@ model AuditLog {
   @@index([action])
   @@index([createdAt])
 }
+
+// ============================================
+// 17. SystemGroup - システムグループ
+// ============================================
+model SystemGroup {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  campaigns Campaign[]
+  patterns  Pattern[]
+
+  @@index([name])
+  @@index([isActive])
+}
+
+// ============================================
+// 18. Campaign - 案件
+// ============================================
+model Campaign {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  status        String   @default("DRAFT") // DRAFT, ACTIVE, PAUSED, COMPLETED, ARCHIVED
+  startDate     DateTime?
+  endDate       DateTime?
+  budget        Float?
+  targetMetrics String?  // JSON string for flexible metrics
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Foreign Keys
+  systemGroupId String?
+
+  // Relations
+  systemGroup SystemGroup? @relation(fields: [systemGroupId], references: [id], onDelete: SetNull)
+  patterns    Pattern[]
+
+  @@index([name])
+  @@index([status])
+  @@index([systemGroupId])
+  @@index([startDate])
+  @@index([endDate])
+}
+
+// ============================================
+// 19. Pattern - パターン
+// ============================================
+model Pattern {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  type        String   @default("DEFAULT") // DEFAULT, A/B_TEST, PERSONALIZED, etc.
+  config      String?  // JSON string for pattern configuration
+  isActive    Boolean  @default(true)
+  priority    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Foreign Keys
+  campaignId    String?
+  systemGroupId String?
+
+  // Relations
+  campaign    Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  systemGroup SystemGroup? @relation(fields: [systemGroupId], references: [id], onDelete: SetNull)
+
+  @@index([name])
+  @@index([type])
+  @@index([isActive])
+  @@index([campaignId])
+  @@index([systemGroupId])
+}
