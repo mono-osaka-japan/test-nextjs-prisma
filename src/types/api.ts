@@ -1,0 +1,228 @@
+/**
+ * @file API関連型定義
+ * @description APIリクエスト・レスポンス、エラーハンドリングの型定義
+ */
+
+import type { PaginationMeta, UserRole, PostStatus, SortOrder } from './index';
+import { ERROR_CODES, type ErrorCode } from '@/constants';
+
+// Re-export for backward compatibility
+export { ERROR_CODES as ErrorCodes, type ErrorCode };
+
+// ============================================
+// API Response Types
+// ============================================
+
+/** APIレスポンスの基本形 */
+export interface ApiResponse<T = unknown, M = Record<string, unknown>> {
+  success: boolean;
+  data?: T;
+  error?: ApiError;
+  meta?: M;
+}
+
+/** ページネーション付きAPIレスポンス */
+export interface ApiPaginatedResponse<T> {
+  success: boolean;
+  data: T[];
+  error?: ApiError;
+  meta: PaginationMeta;
+}
+
+/** APIエラー */
+export interface ApiError {
+  code: ErrorCode;
+  message: string;
+  details?: Record<string, unknown>;
+  validationErrors?: ValidationError[];
+}
+
+/** バリデーションエラー */
+export interface ValidationError {
+  field: string;
+  message: string;
+  code?: ErrorCode;
+}
+
+// ============================================
+// HTTP Types
+// ============================================
+
+/** HTTPメソッド */
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+/** HTTPステータスコード */
+export type HttpStatusCode =
+  | 200 // OK
+  | 201 // Created
+  | 204 // No Content
+  | 400 // Bad Request
+  | 401 // Unauthorized
+  | 403 // Forbidden
+  | 404 // Not Found
+  | 409 // Conflict
+  | 422 // Unprocessable Entity
+  | 429 // Too Many Requests
+  | 500 // Internal Server Error
+  | 502 // Bad Gateway
+  | 503; // Service Unavailable
+
+// ============================================
+// Auth Types
+// ============================================
+
+/** ログインリクエスト */
+export interface LoginRequest {
+  email: string;
+  password: string;
+  rememberMe?: boolean;
+}
+
+/** ログインレスポンス */
+export interface LoginResponse {
+  user: AuthUser;
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt: string;
+}
+
+/** 認証済みユーザー情報 */
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string | null;
+  avatarUrl: string | null;
+  role: UserRole;
+}
+
+/** 登録リクエスト */
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  name?: string;
+}
+
+/** パスワードリセットリクエスト */
+export interface PasswordResetRequest {
+  email: string;
+}
+
+/** パスワード変更リクエスト */
+export interface PasswordChangeRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+/** トークンリフレッシュリクエスト */
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+// ============================================
+// Request Context Types
+// ============================================
+
+/** リクエストコンテキスト */
+export interface RequestContext {
+  userId?: string;
+  sessionId?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  locale?: string;
+}
+
+/** 認証済みリクエストコンテキスト */
+export interface AuthenticatedRequestContext extends RequestContext {
+  userId: string;
+  sessionId: string;
+  user: AuthUser;
+}
+
+// ============================================
+// Specific API Request/Response Types
+// ============================================
+
+/** 投稿一覧リクエスト */
+export interface GetPostsRequest {
+  page?: number;
+  limit?: number;
+  status?: PostStatus;
+  authorId?: string;
+  categoryId?: string;
+  tagId?: string;
+  search?: string;
+  sortBy?: 'createdAt' | 'publishedAt' | 'viewCount' | 'title';
+  sortOrder?: SortOrder;
+}
+
+/** ユーザー一覧リクエスト */
+export interface GetUsersRequest {
+  page?: number;
+  limit?: number;
+  role?: UserRole;
+  search?: string;
+  sortBy?: 'createdAt' | 'name' | 'email';
+  sortOrder?: SortOrder;
+}
+
+/** コメント一覧リクエスト */
+export interface GetCommentsRequest {
+  postId: string;
+  page?: number;
+  limit?: number;
+  parentId?: string | null;
+}
+
+/** 通知一覧リクエスト */
+export interface GetNotificationsRequest {
+  page?: number;
+  limit?: number;
+  unreadOnly?: boolean;
+}
+
+/** 通知既読更新リクエスト */
+export interface MarkNotificationsReadRequest {
+  notificationIds?: string[];
+  markAll?: boolean;
+}
+
+// ============================================
+// Webhook Types
+// ============================================
+
+/** Webhookペイロード */
+export interface WebhookPayload<T = unknown> {
+  event: string;
+  timestamp: string;
+  data: T;
+  signature?: string;
+}
+
+/** Webhookイベントタイプ */
+export type WebhookEventType =
+  | 'user.created'
+  | 'user.updated'
+  | 'user.deleted'
+  | 'post.created'
+  | 'post.updated'
+  | 'post.published'
+  | 'post.deleted'
+  | 'comment.created'
+  | 'comment.deleted';
+
+// ============================================
+// API Route Handler Types
+// ============================================
+
+/** APIハンドラーオプション */
+export interface ApiHandlerOptions {
+  requireAuth?: boolean;
+  roles?: UserRole[];
+  rateLimit?: {
+    requests: number;
+    window: number; // seconds
+  };
+}
+
+/** APIハンドラーの戻り値 */
+export type ApiHandlerResult<T> = Promise<ApiResponse<T>>;
