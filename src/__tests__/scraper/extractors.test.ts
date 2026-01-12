@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 import {
   extract,
   extractByCss,
