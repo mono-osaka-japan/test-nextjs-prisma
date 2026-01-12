@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 
@@ -63,6 +63,18 @@ export function ExportModal({
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Sync columns when availableColumns or isOpen changes
+  useEffect(() => {
+    if (isOpen) {
+      setColumns(availableColumns);
+      setError(null);
+    }
+  }, [isOpen, availableColumns]);
+
+  // Check if format requires onExport handler
+  const requiresCustomHandler = format === 'xlsx';
+  const canExport = !requiresCustomHandler || !!onExport;
+
   const toggleColumn = useCallback((key: string) => {
     setColumns((prev) =>
       prev.map((col) =>
@@ -104,33 +116,52 @@ export function ExportModal({
       if (onExport) {
         blob = await onExport(config);
       } else {
-        // Default CSV generation
+        // Default generation based on format
         const selectedCols = columns.filter((c) => c.selected);
-        const rows: string[] = [];
 
-        if (includeHeader) {
-          rows.push(selectedCols.map((c) => c.label).join(','));
+        if (format === 'json') {
+          // JSON generation
+          const jsonData = data.map((item) => {
+            const obj: Record<string, unknown> = {};
+            for (const col of selectedCols) {
+              obj[col.key] = item[col.key];
+            }
+            return obj;
+          });
+          blob = new Blob([JSON.stringify(jsonData, null, 2)], {
+            type: 'application/json;charset=utf-8',
+          });
+        } else if (format === 'xlsx') {
+          // Excel format requires custom handler
+          throw new Error('Excel形式のエクスポートにはonExportハンドラが必要です');
+        } else {
+          // CSV generation
+          const rows: string[] = [];
+
+          if (includeHeader) {
+            rows.push(selectedCols.map((c) => c.label).join(','));
+          }
+
+          for (const item of data) {
+            const row = selectedCols
+              .map((col) => {
+                const value = item[col.key];
+                if (value === null || value === undefined) return '';
+                if (typeof value === 'string' && value.includes(',')) {
+                  return `"${value.replace(/"/g, '""')}"`;
+                }
+                return String(value);
+              })
+              .join(',');
+            rows.push(row);
+          }
+
+          const csvContent = rows.join('\n');
+          const bom = encoding === 'utf-8' ? '\uFEFF' : '';
+          blob = new Blob([bom + csvContent], {
+            type: 'text/csv;charset=' + encoding,
+          });
         }
-
-        for (const item of data) {
-          const row = selectedCols
-            .map((col) => {
-              const value = item[col.key];
-              if (value === null || value === undefined) return '';
-              if (typeof value === 'string' && value.includes(',')) {
-                return `"${value.replace(/"/g, '""')}"`;
-              }
-              return String(value);
-            })
-            .join(',');
-          rows.push(row);
-        }
-
-        const csvContent = rows.join('\n');
-        const bom = encoding === 'utf-8' ? '\uFEFF' : '';
-        blob = new Blob([bom + csvContent], {
-          type: 'text/csv;charset=' + encoding,
-        });
       }
 
       // Download file
@@ -303,6 +334,13 @@ export function ExportModal({
           </div>
         </div>
 
+        {/* Excel format warning */}
+        {requiresCustomHandler && !onExport && (
+          <div className="rounded-lg bg-yellow-100 p-3 text-sm text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
+            Excel形式は現在利用できません。CSV または JSON を選択してください。
+          </div>
+        )}
+
         {/* Error */}
         {error && (
           <div className="rounded-lg bg-red-100 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
@@ -320,7 +358,7 @@ export function ExportModal({
           variant="primary"
           onClick={handleExport}
           isLoading={isExporting}
-          disabled={selectedCount === 0}
+          disabled={selectedCount === 0 || !canExport}
         >
           エクスポート
         </Button>

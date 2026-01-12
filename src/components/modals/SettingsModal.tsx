@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { GeneralSettings } from '../features/settings/GeneralSettings';
@@ -81,6 +81,20 @@ export function SettingsModal({
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const prevIsOpenRef = useRef(isOpen);
+
+  // Sync settings only when modal opens (isOpen transitions from false to true)
+  useEffect(() => {
+    const wasOpen = prevIsOpenRef.current;
+    prevIsOpenRef.current = isOpen;
+
+    // Only reset when modal opens (false -> true transition)
+    if (isOpen && !wasOpen) {
+      setSettings(initialSettings);
+      setHasChanges(false);
+      setActiveTab('general');
+    }
+  }, [isOpen, initialSettings]);
 
   const updateSettings = useCallback(
     <K extends keyof Settings>(

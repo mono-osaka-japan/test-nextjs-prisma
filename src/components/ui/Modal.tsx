@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useId } from 'react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -27,6 +27,7 @@ export function Modal({
   showCloseButton = true,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
 
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
@@ -63,13 +64,13 @@ export function Modal({
         ref={modalRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="modal-title"
+        aria-labelledby={titleId}
         className={`relative z-10 w-full ${sizeClasses[size]} mx-4 rounded-lg bg-white shadow-xl dark:bg-zinc-900`}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
           <h2
-            id="modal-title"
+            id={titleId}
             className="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
           >
             {title}

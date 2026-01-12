@@ -42,18 +42,25 @@ export function ScrapingExecuteModal({
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const cancelledRef = useRef(false);
 
-  // Initialize tasks from config
+  // Initialize tasks from config (filter out empty URLs)
   useEffect(() => {
-    if (isOpen && config.urls.length > 0) {
-      setTasks(
-        config.urls.map((url, index) => ({
-          id: `task-${index}`,
-          url,
-          status: 'pending',
-          progress: 0,
-        }))
-      );
+    if (isOpen) {
+      cancelledRef.current = false;
+      const validUrls = config.urls.filter((url) => url.trim() !== '');
+      if (validUrls.length > 0) {
+        setTasks(
+          validUrls.map((url, index) => ({
+            id: `task-${index}`,
+            url,
+            status: 'pending',
+            progress: 0,
+          }))
+        );
+      } else {
+        setTasks([]);
+      }
       setOverallStatus('idle');
       setStartTime(null);
       setElapsedTime(0);
@@ -80,56 +87,86 @@ export function ScrapingExecuteModal({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const runSimulatedExecution = async () => {
+    // Simulate progress updates for demo/default behavior
+    for (let i = 0; i < tasks.length; i++) {
+      // Check cancellation via ref (not state, which is stale in closure)
+      if (cancelledRef.current) break;
+
+      setTasks((prev) =>
+        prev.map((task, idx) =>
+          idx === i ? { ...task, status: 'running', progress: 0 } : task
+        )
+      );
+
+      // Simulate progress
+      for (let progress = 0; progress <= 100; progress += 20) {
+        if (cancelledRef.current) break;
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        if (cancelledRef.current) break;
+        setTasks((prev) =>
+          prev.map((task, idx) =>
+            idx === i && task.status === 'running'
+              ? { ...task, progress }
+              : task
+          )
+        );
+      }
+
+      if (cancelledRef.current) break;
+
+      // Mark as completed (simulate random failures)
+      const failed = Math.random() < 0.1;
+      setTasks((prev) =>
+        prev.map((task, idx) =>
+          idx === i
+            ? {
+                ...task,
+                status: failed ? 'failed' : 'completed',
+                progress: 100,
+                error: failed ? 'タイムアウトしました' : undefined,
+              }
+            : task
+        )
+      );
+    }
+  };
+
   const handleStart = async () => {
+    // Validate: require at least one URL
+    if (tasks.length === 0) {
+      return;
+    }
+
+    cancelledRef.current = false;
     setOverallStatus('running');
     setStartTime(new Date());
 
-    if (onExecute) {
-      try {
-        // Simulate progress updates
-        for (let i = 0; i < tasks.length; i++) {
-          setTasks((prev) =>
-            prev.map((task, idx) =>
-              idx === i ? { ...task, status: 'running', progress: 0 } : task
-            )
-          );
-
-          // Simulate progress
-          for (let progress = 0; progress <= 100; progress += 20) {
-            await new Promise((resolve) => setTimeout(resolve, 200));
-            setTasks((prev) =>
-              prev.map((task, idx) =>
-                idx === i && task.status === 'running'
-                  ? { ...task, progress }
-                  : task
-              )
-            );
-          }
-
-          // Mark as completed (simulate random failures)
-          const failed = Math.random() < 0.1;
-          setTasks((prev) =>
-            prev.map((task, idx) =>
-              idx === i
-                ? {
-                    ...task,
-                    status: failed ? 'failed' : 'completed',
-                    progress: 100,
-                    error: failed ? 'タイムアウトしました' : undefined,
-                  }
-                : task
-            )
-          );
+    try {
+      if (onExecute) {
+        // Use provided execution handler and update tasks with results
+        const results = await onExecute(config);
+        if (results && results.length > 0) {
+          setTasks(results);
         }
+      } else {
+        // Only run simulated execution when no handler is provided
+        await runSimulatedExecution();
+      }
 
+      // Only set completed if not cancelled
+      if (!cancelledRef.current) {
         setOverallStatus('completed');
-      } catch {
+      }
+    } catch {
+      if (!cancelledRef.current) {
         setOverallStatus('error');
       }
     }
   };
 
   const handleCancel = useCallback(() => {
+    cancelledRef.current = true;
     setOverallStatus('cancelled');
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -321,7 +358,11 @@ export function ScrapingExecuteModal({
               <Button variant="secondary" onClick={handleClose}>
                 キャンセル
               </Button>
-              <Button variant="primary" onClick={handleStart}>
+              <Button
+                variant="primary"
+                onClick={handleStart}
+                disabled={tasks.length === 0}
+              >
                 実行開始
               </Button>
             </>
