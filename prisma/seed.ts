@@ -12,6 +12,8 @@ async function main() {
   console.log("Seeding database...");
 
   // Clean up existing data
+  await prisma.campaignTask.deleteMany();
+  await prisma.campaign.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.media.deleteMany();
   await prisma.notification.deleteMany();
@@ -148,7 +150,30 @@ async function main() {
     },
   });
 
-  console.log("Created 4 users");
+  // Create Demo User (for development only)
+  // セキュリティ: 本番環境では絶対に作成しない
+  // NODE_ENV が明示的に "development" または "test" の場合のみ作成
+  const isDevelopmentEnv = process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test";
+  let demoUser = null;
+  if (isDevelopmentEnv) {
+    demoUser = await prisma.user.create({
+      data: {
+        id: "demo-user-id", // Fixed ID for development
+        email: "demo@example.com",
+        name: "Demo User",
+        role: "USER",
+        emailVerified: new Date(),
+        profile: {
+          create: {
+            bio: "開発用のデモユーザーです。",
+          },
+        },
+      },
+    });
+    console.log("Created 5 users (including demo user)");
+  } else {
+    console.log("Created 4 users (demo user skipped - not in development/test environment)");
+  }
 
   // Create Posts
   const post1 = await prisma.post.create({
