@@ -1,64 +1,110 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/Button';
+import { SettingsModal } from '@/components/modals/SettingsModal';
+import { ScrapingExecuteModal } from '@/components/modals/ScrapingExecuteModal';
+import { ExportModal, ExportColumn } from '@/components/modals/ExportModal';
+
+const sampleColumns: ExportColumn[] = [
+  { key: 'id', label: 'ID', selected: true },
+  { key: 'title', label: 'タイトル', selected: true },
+  { key: 'author', label: '著者', selected: true },
+  { key: 'createdAt', label: '作成日', selected: true },
+  { key: 'status', label: 'ステータス', selected: false },
+  { key: 'category', label: 'カテゴリー', selected: false },
+];
+
+const sampleData = [
+  { id: 1, title: '記事1', author: '田中太郎', createdAt: '2024-01-15', status: 'published', category: 'tech' },
+  { id: 2, title: '記事2', author: '鈴木花子', createdAt: '2024-01-16', status: 'draft', category: 'news' },
+  { id: 3, title: '記事3', author: '佐藤次郎', createdAt: '2024-01-17', status: 'published', category: 'tech' },
+];
 
 export default function Home() {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isScrapingOpen, setIsScrapingOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-center gap-8 py-32 px-16 bg-white dark:bg-black">
+        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+          Phase 11: 設定・その他モーダル
+        </h1>
+
+        <div className="flex flex-col gap-4 w-full max-w-md">
+          {/* Settings Modal */}
+          <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+              設定モーダル
+            </h2>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+              一般設定、通知、セキュリティ、スクレイピング設定を変更できます。
+            </p>
+            <Button onClick={() => setIsSettingsOpen(true)}>
+              設定を開く
+            </Button>
+          </div>
+
+          {/* Scraping Execute Modal */}
+          <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+              スクレイピング実行モーダル
+            </h2>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+              スクレイピングの実行状況を確認し、進捗を表示します。
+            </p>
+            <Button onClick={() => setIsScrapingOpen(true)}>
+              スクレイピング実行
+            </Button>
+          </div>
+
+          {/* Export Modal */}
+          <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+              エクスポートモーダル
+            </h2>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+              データをCSV、JSON、Excelなどの形式でエクスポートします。
+            </p>
+            <Button onClick={() => setIsExportOpen(true)}>
+              データをエクスポート
+            </Button>
+          </div>
+        </div>
+
+        {/* Modals */}
+        <SettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          onSave={async (settings) => {
+            console.log('Settings saved:', settings);
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          }}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+
+        <ScrapingExecuteModal
+          isOpen={isScrapingOpen}
+          onClose={() => setIsScrapingOpen(false)}
+          config={{
+            urls: [
+              'https://example.com/page1',
+              'https://example.com/page2',
+              'https://example.com/page3',
+              'https://example.com/page4',
+              'https://example.com/page5',
+            ],
+          }}
+        />
+
+        <ExportModal
+          isOpen={isExportOpen}
+          onClose={() => setIsExportOpen(false)}
+          availableColumns={sampleColumns}
+          data={sampleData}
+          filename="exported-data"
+        />
       </main>
     </div>
   );

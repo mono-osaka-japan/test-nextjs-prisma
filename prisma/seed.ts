@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { hash } from "bcryptjs";
 import path from "path";
 
 // Database is at project root (relative to prisma.config.ts)
@@ -11,6 +12,8 @@ async function main() {
   console.log("Seeding database...");
 
   // Clean up existing data
+  await prisma.campaignTask.deleteMany();
+  await prisma.campaign.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.media.deleteMany();
   await prisma.notification.deleteMany();
@@ -79,10 +82,14 @@ async function main() {
   console.log(`Created ${tags.length} tags`);
 
   // Create Users
+  // Default password for all seed users: "password123"
+  const defaultPassword = await hash("password123", 12);
+
   const adminUser = await prisma.user.create({
     data: {
       email: "admin@example.com",
       name: "管理者",
+      passwordHash: defaultPassword,
       role: "ADMIN",
       emailVerified: new Date(),
       profile: {
@@ -99,6 +106,7 @@ async function main() {
     data: {
       email: "tanaka@example.com",
       name: "田中太郎",
+      passwordHash: defaultPassword,
       role: "USER",
       emailVerified: new Date(),
       profile: {
@@ -115,6 +123,7 @@ async function main() {
     data: {
       email: "suzuki@example.com",
       name: "鈴木花子",
+      passwordHash: defaultPassword,
       role: "USER",
       emailVerified: new Date(),
       profile: {
@@ -130,6 +139,7 @@ async function main() {
     data: {
       email: "moderator@example.com",
       name: "モデレーター山田",
+      passwordHash: defaultPassword,
       role: "MODERATOR",
       emailVerified: new Date(),
       profile: {
@@ -140,7 +150,30 @@ async function main() {
     },
   });
 
-  console.log("Created 4 users");
+  // Create Demo User (for development only)
+  // セキュリティ: 本番環境では絶対に作成しない
+  // NODE_ENV が明示的に "development" または "test" の場合のみ作成
+  const isDevelopmentEnv = process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test";
+  let demoUser = null;
+  if (isDevelopmentEnv) {
+    demoUser = await prisma.user.create({
+      data: {
+        id: "demo-user-id", // Fixed ID for development
+        email: "demo@example.com",
+        name: "Demo User",
+        role: "USER",
+        emailVerified: new Date(),
+        profile: {
+          create: {
+            bio: "開発用のデモユーザーです。",
+          },
+        },
+      },
+    });
+    console.log("Created 5 users (including demo user)");
+  } else {
+    console.log("Created 4 users (demo user skipped - not in development/test environment)");
+  }
 
   // Create Posts
   const post1 = await prisma.post.create({

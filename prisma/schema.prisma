@@ -35,6 +35,9 @@ model User {
   followers     Follow[]       @relation("Followers")
   profile       Profile?
   auditLogs     AuditLog[]
+  patterns      Pattern[]
+  campaigns     Campaign[]
+  assignedTasks CampaignTask[] @relation("AssignedTasks")
 
   @@index([email])
   @@index([createdAt])
@@ -340,5 +343,169 @@ model AuditLog {
   @@index([userId])
   @@index([entity])
   @@index([action])
+  @@index([createdAt])
+}
+
+// ============================================
+// 17. SystemGroup - システムグループ
+// ============================================
+model SystemGroup {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  patterns  Pattern[]
+
+  @@index([name])
+  @@index([isActive])
+}
+
+// ============================================
+// 18. Campaign - 案件
+// ============================================
+model Campaign {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  status      String   @default("DRAFT") // DRAFT, ACTIVE, PAUSED, COMPLETED, CANCELLED
+  priority    String   @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  startDate   DateTime?
+  endDate     DateTime?
+  budget      Float?
+  targetUrl   String?
+
+  // 認証情報（URL解析で抽出）
+  authType    String?  // NONE, BASIC, BEARER, API_KEY, OAUTH
+  authConfig  String?  // JSON: { username, password, token, apiKey, etc. }
+
+  // メタデータ
+  metadata    String?  // JSON: 追加の設定や情報
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Foreign Keys
+  ownerId     String
+
+  // Relations
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  tasks       CampaignTask[]
+  patterns    Pattern[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+}
+
+// ============================================
+// 19. CampaignTask - 案件タスク
+// ============================================
+model CampaignTask {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  status      String   @default("TODO") // TODO, IN_PROGRESS, DONE, CANCELLED
+  dueDate     DateTime?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Foreign Keys
+  campaignId  String
+  assigneeId  String?
+
+  // Relations
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  assignee    User?    @relation("AssignedTasks", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  @@index([campaignId])
+  @@index([assigneeId])
+  @@index([status])
+}
+
+// ============================================
+// 20. Pattern - パターン（自動化テンプレート）
+// ============================================
+model Pattern {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  type        String   @default("DEFAULT") // DEFAULT, A/B_TEST, PERSONALIZED, etc.
+  config      String?  // JSON string for pattern configuration
+  isActive    Boolean  @default(true)
+  priority    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Foreign Keys
+  authorId      String?
+  campaignId    String?
+  systemGroupId String?
+
+  // Relations
+  author      User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  campaign    Campaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  systemGroup SystemGroup?  @relation(fields: [systemGroupId], references: [id], onDelete: SetNull)
+  steps       PatternStep[]
+  testResults PatternTestResult[]
+
+  @@index([name])
+  @@index([type])
+  @@index([isActive])
+  @@index([authorId])
+  @@index([campaignId])
+  @@index([systemGroupId])
+}
+
+// ============================================
+// 21. PatternStep - パターンステップ
+// ============================================
+model PatternStep {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  action      String   // ACTION_TYPE: NOTIFY, VALIDATE, TRANSFORM, WEBHOOK, etc.
+  config      String   // JSON config for the action
+  sortOrder   Int      @default(0)
+  isEnabled   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Foreign Keys
+  patternId String
+
+  // Relations
+  pattern Pattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
+
+  @@index([patternId])
+  @@index([sortOrder])
+}
+
+// ============================================
+// 22. PatternTestResult - パターンテスト結果
+// ============================================
+model PatternTestResult {
+  id          String   @id @default(cuid())
+  status      String   // PENDING, RUNNING, SUCCESS, FAILED
+  input       String?  // JSON test input
+  output      String?  // JSON test output
+  error       String?
+  duration    Int?     // milliseconds
+  createdAt   DateTime @default(now())
+
+  // Foreign Keys
+  patternId String
+
+  // Relations
+  pattern Pattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
+
+  @@index([patternId])
+  @@index([status])
   @@index([createdAt])
 }

@@ -1,98 +1,119 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/db/prisma";
 
+// GET /api/dashboard - ダッシュボード統計情報取得
 export async function GET() {
   try {
-    // KPI データの取得
+    // 全体統計を並列で取得
     const [
-      totalUsers,
-      totalPosts,
-      publishedPosts,
-      totalComments,
-      totalLikes,
-      totalViews,
+      totalCampaigns,
+      totalPatterns,
+      totalSystemGroups,
+      activeCampaigns,
+      activePatterns,
+      activeSystemGroups,
+      campaignsByStatus,
+      patternsByType,
+      recentCampaigns,
+      recentPatterns,
     ] = await Promise.all([
-      prisma.user.count(),
-      prisma.post.count(),
-      prisma.post.count({ where: { status: 'PUBLISHED' } }),
-      prisma.comment.count(),
-      prisma.like.count(),
-      prisma.post.aggregate({ _sum: { viewCount: true } }),
+      // 総数
+      prisma.campaign.count(),
+      prisma.pattern.count(),
+      prisma.systemGroup.count(),
+
+      // アクティブ数
+      prisma.campaign.count({ where: { status: "ACTIVE" } }),
+      prisma.pattern.count({ where: { isActive: true } }),
+      prisma.systemGroup.count({ where: { isActive: true } }),
+
+      // キャンペーンのステータス別集計
+      prisma.campaign.groupBy({
+        by: ["status"],
+        _count: { status: true },
+      }),
+
+      // パターンのタイプ別集計
+      prisma.pattern.groupBy({
+        by: ["type"],
+        _count: { type: true },
+      }),
+
+      // 最近の案件
+      prisma.campaign.findMany({
+        take: 5,
+        orderBy: { createdAt: "desc" },
+        include: {
+          systemGroup: true,
+          _count: { select: { patterns: true } },
+        },
+      }),
+
+      // 最近のパターン
+      prisma.pattern.findMany({
+        take: 5,
+        orderBy: { createdAt: "desc" },
+        include: {
+          campaign: true,
+          systemGroup: true,
+        },
+      }),
     ]);
 
-    // 過去7日間のデータを取得
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const [recentPosts, recentUsers] = await Promise.all([
-      prisma.post.count({
-        where: { createdAt: { gte: sevenDaysAgo } },
-      }),
-      prisma.user.count({
-        where: { createdAt: { gte: sevenDaysAgo } },
-      }),
-    ]);
-
-    // チャート用データ（日別投稿数）
-    const postsPerDay = await prisma.$queryRaw<{ date: string; count: number }[]>`
-      SELECT
-        DATE(createdAt) as date,
-        COUNT(*) as count
-      FROM Post
-      WHERE createdAt >= ${sevenDaysAgo.toISOString()}
-      GROUP BY DATE(createdAt)
-      ORDER BY date ASC
-    `;
-
-    // チャートデータを整形
-    const chartData = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      const dayData = postsPerDay.find((p) => p.date === dateStr);
-      chartData.push({
-        label: date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' }),
-        value: dayData ? Number(dayData.count) : 0,
-      });
+    // ステータス別・タイプ別をオブジェクトに変換
+    const campaignStatusCounts: Record<string, number> = {};
+    for (const item of campaignsByStatus) {
+      campaignStatusCounts[item.status] = item._count.status;
     }
 
-    // KPIデータ
-    const kpis = {
-      totalUsers: {
-        value: totalUsers,
-        change: totalUsers > 0 ? Math.round((recentUsers / totalUsers) * 100) : 0,
-        trend: recentUsers > 0 ? 'up' : 'neutral',
+    const patternTypeCounts: Record<string, number> = {};
+    for (const item of patternsByType) {
+      patternTypeCounts[item.type] = item._count.type;
+    }
+
+    const dashboard = {
+      summary: {
+        campaigns: {
+          total: totalCampaigns,
+          active: activeCampaigns,
+          byStatus: campaignStatusCounts,
+        },
+        patterns: {
+          total: totalPatterns,
+          active: activePatterns,
+          byType: patternTypeCounts,
+        },
+        systemGroups: {
+          total: totalSystemGroups,
+          active: activeSystemGroups,
+        },
       },
-      totalPosts: {
-        value: totalPosts,
-        change: totalPosts > 0 ? Math.round((recentPosts / totalPosts) * 100) : 0,
-        trend: recentPosts > 0 ? 'up' : 'neutral',
-      },
-      publishedPosts: {
-        value: publishedPosts,
-      },
-      totalComments: {
-        value: totalComments,
-      },
-      totalLikes: {
-        value: totalLikes,
-      },
-      totalViews: {
-        value: totalViews._sum.viewCount || 0,
+      recent: {
+        campaigns: recentCampaigns.map((c) => ({
+          id: c.id,
+          name: c.name,
+          status: c.status,
+          systemGroup: c.systemGroup?.name || null,
+          patternCount: c._count.patterns,
+          createdAt: c.createdAt,
+        })),
+        patterns: recentPatterns.map((p) => ({
+          id: p.id,
+          name: p.name,
+          type: p.type,
+          isActive: p.isActive,
+          campaign: p.campaign?.name || null,
+          systemGroup: p.systemGroup?.name || null,
+          createdAt: p.createdAt,
+        })),
       },
     };
 
-    return NextResponse.json({
-      kpis,
-      charts: {
-        postsPerDay: chartData,
-      },
-    });
+    return NextResponse.json(dashboard);
   } catch (error) {
-    console.error('Dashboard API error:', error);
+    console.error("Failed to fetch dashboard data:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch dashboard data' },
+      { error: "Failed to fetch dashboard data" },
       { status: 500 }
     );
   }
