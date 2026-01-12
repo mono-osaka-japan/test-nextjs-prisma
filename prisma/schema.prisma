@@ -35,6 +35,7 @@ model User {
   followers     Follow[]       @relation("Followers")
   profile       Profile?
   auditLogs     AuditLog[]
+  patterns      Pattern[]
 
   @@index([email])
   @@index([createdAt])
@@ -340,5 +341,75 @@ model AuditLog {
   @@index([userId])
   @@index([entity])
   @@index([action])
+  @@index([createdAt])
+}
+
+// ============================================
+// 17. Pattern - パターン（自動化テンプレート）
+// ============================================
+model Pattern {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Foreign Keys
+  authorId String
+
+  // Relations
+  author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  steps       PatternStep[]
+  testResults PatternTestResult[]
+
+  @@index([authorId])
+  @@index([isActive])
+}
+
+// ============================================
+// 18. PatternStep - パターンステップ
+// ============================================
+model PatternStep {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  action      String   // ACTION_TYPE: NOTIFY, VALIDATE, TRANSFORM, WEBHOOK, etc.
+  config      String   // JSON config for the action
+  sortOrder   Int      @default(0)
+  isEnabled   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Foreign Keys
+  patternId String
+
+  // Relations
+  pattern Pattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
+
+  @@index([patternId])
+  @@index([sortOrder])
+}
+
+// ============================================
+// 19. PatternTestResult - パターンテスト結果
+// ============================================
+model PatternTestResult {
+  id          String   @id @default(cuid())
+  status      String   // PENDING, RUNNING, SUCCESS, FAILED
+  input       String?  // JSON test input
+  output      String?  // JSON test output
+  error       String?
+  duration    Int?     // milliseconds
+  createdAt   DateTime @default(now())
+
+  // Foreign Keys
+  patternId String
+
+  // Relations
+  pattern Pattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
+
+  @@index([patternId])
+  @@index([status])
   @@index([createdAt])
 }
