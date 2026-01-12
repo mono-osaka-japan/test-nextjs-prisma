@@ -13,6 +13,7 @@ export function DashboardHeader({ title, onRefresh }: DashboardHeaderProps) {
       </h1>
       {onRefresh && (
         <button
+          type="button"
           onClick={onRefresh}
           aria-label="データを更新"
           className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"

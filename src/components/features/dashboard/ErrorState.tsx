@@ -12,6 +12,7 @@ export function ErrorState({ message, onRetry }: ErrorStateProps) {
         <p className="text-red-600 dark:text-red-400 mb-4">{message}</p>
         {onRetry && (
           <button
+            type="button"
             onClick={onRetry}
             aria-label="データの再読み込み"
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

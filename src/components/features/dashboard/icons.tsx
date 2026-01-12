@@ -1,5 +1,5 @@
 export const UsersIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -10,7 +10,7 @@ export const UsersIcon = () => (
 );
 
 export const PostsIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -21,7 +21,7 @@ export const PostsIcon = () => (
 );
 
 export const CommentsIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -32,7 +32,7 @@ export const CommentsIcon = () => (
 );
 
 export const LikesIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -43,7 +43,7 @@ export const LikesIcon = () => (
 );
 
 export const ViewsIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -60,7 +60,7 @@ export const ViewsIcon = () => (
 );
 
 export const PublishedIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -71,7 +71,7 @@ export const PublishedIcon = () => (
 );
 
 export const CampaignsIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -82,7 +82,7 @@ export const CampaignsIcon = () => (
 );
 
 export const PatternsIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -93,7 +93,7 @@ export const PatternsIcon = () => (
 );
 
 export const SystemGroupsIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
