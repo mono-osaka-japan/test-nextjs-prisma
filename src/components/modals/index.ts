@@ -10,3 +10,5 @@ export {
   type ExportColumn,
   type ExportConfig,
 } from './ExportModal';
+export { PatternEditModal } from "./PatternEditModal";
+export { PatternTestModal } from "./PatternTestModal";
